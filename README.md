@@ -84,7 +84,7 @@ curl -X POST "http://localhost:8000/query" -H "Content-Type: application/json" -
 1. **Prerequisites:** Docker, git, Groq API key
 2. **Clone & Configure:**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/CVSAISREENIVASREDDY/web-rag-engine
    cd web-rag-engine
    cp .env.example .env
    # (Add your GROQ_API_KEY to .env)
@@ -100,13 +100,4 @@ curl -X POST "http://localhost:8000/query" -H "Content-Type: application/json" -
    ```bash
    docker-compose down
    ```
-
----
-
-
-
-
-
-
----
 
