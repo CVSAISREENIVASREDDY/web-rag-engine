@@ -6,8 +6,6 @@ A scalable Retrieval-Augmented Generation (RAG) platform that asynchronously ing
 
 ## System Architecture
 
-![System Architecture](./architecture.png)
-
 **How it works:**
 1. **User submits a URL or query to the API.**
 2. **Ingestion jobs are queued via Celery/Redis.**
