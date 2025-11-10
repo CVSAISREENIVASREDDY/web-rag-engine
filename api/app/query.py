@@ -92,4 +92,4 @@ def query_rag_engine(query_text: str) -> dict:
         }
     except Exception as e:
         print(f"Error generating answer with Groq: {e}")
-        raise
+        raise  

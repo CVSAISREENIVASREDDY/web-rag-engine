@@ -6,6 +6,8 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
+import PyPDF2 
+import docx 
 # --- Configuration ---
 CHROMA_HOST = os.getenv("CHROMA_HOST")
 CHROMA_PORT = os.getenv("CHROMA_PORT")
@@ -94,3 +96,53 @@ def store_chunks_in_db(url: str, chunks: list[str]):
         metadatas=metadatas
     )
     print("Successfully stored chunks in ChromaDB.") 
+
+
+
+def extract_text_from_pdf(filepath: str) -> str:
+    """Extract text from a PDF file using PyPDF2."""
+    print(f"Extracting text from PDF: {filepath}")
+    text = ""
+    with open(filepath, "rb") as f:
+        reader = PyPDF2.PdfReader(f)
+        for page in reader.pages:
+            text += page.extract_text() or ""
+    return text
+
+def extract_text_from_docx(filepath: str) -> str:
+    """Extract text from a DOCX file using python-docx."""
+    print(f"Extracting text from DOCX: {filepath}")
+    doc = docx.Document(filepath)
+    text = "\n".join([para.text for para in doc.paragraphs])
+    return text
+
+def fetch_and_clean_file(file_path: str, content_type: str) -> str:
+    """Extracts and cleans text from a PDF or DOCX file."""
+    if content_type == "application/pdf":
+        text = extract_text_from_pdf(file_path)
+    elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        text = extract_text_from_docx(file_path)
+    else:
+        raise ValueError("Unsupported document type.")
+    # Clean up whitespace similar to HTML
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    cleaned_text = '\n'.join(chunk for chunk in chunks if chunk)
+    return cleaned_text
+
+def store_file_chunks_in_db(filename: str, chunks: list[str]):
+    """Stores text chunks from a document and their metadata in ChromaDB."""
+    if not chunks:
+        print("No chunks to store.")
+        return
+
+    print(f"Storing {len(chunks)} file chunks in ChromaDB...")
+    ids = [f"{filename}_{i}" for i, _ in enumerate(chunks)]
+    metadatas = [{"source_file": filename} for _ in chunks]
+    collection.add(
+        ids=ids,
+        documents=chunks,
+        metadatas=metadatas
+    )
+    print("Successfully stored file chunks in ChromaDB.")
+

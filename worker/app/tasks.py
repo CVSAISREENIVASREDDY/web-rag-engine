@@ -1,6 +1,7 @@
 from app.celery_app import celery_app
 from app.database import SessionLocal, IngestionJob
 from app.ingest import fetch_and_clean_text, chunk_text, store_chunks_in_db
+from app.ingest import fetch_and_clean_file, chunk_text, store_file_chunks_in_db 
 
 @celery_app.task(name="process_url_task", bind=True)
 def process_url_task(self, job_id: str, url: str):
@@ -54,4 +55,36 @@ def process_url_task(self, job_id: str, url: str):
 
     finally:
         # Always close the database session
+        db.close()
+
+
+@celery_app.task(name="process_file_task") 
+def process_file_task(job_id: str, file_path: str, content_type: str):
+    """
+    Celery task to process uploaded document files.
+    """
+    from .database import SessionLocal, IngestionJob
+    db = SessionLocal()
+    try:
+        job = db.query(IngestionJob).filter(IngestionJob.id == job_id).first()
+        if job is None:
+            print(f"No job found for job_id {job_id}")
+            return
+
+        job.status = "RUNNING"
+        db.commit()
+
+        text = fetch_and_clean_file(file_path, content_type)
+        chunks = chunk_text(text)
+        store_file_chunks_in_db(job.url, chunks)
+
+        job.status = "COMPLETED"
+        db.commit()
+        print(f"Completed processing file {job.url} (job_id={job_id})")
+    except Exception as e:
+        if job:
+            job.status = "FAILED"
+            db.commit()
+        print(f"Error in process_file_task: {e}")
+    finally:
         db.close()
