@@ -11,12 +11,21 @@ from app.models import IngestRequest, IngestResponse, QueryRequest, QueryRespons
 from app.celery_client import celery_app
 from app.database import SessionLocal, IngestionJob, create_db_and_tables
 from app.query import query_rag_engine
+from contextlib import asynccontextmanager
 
 # Initialize the FastAPI application
+@asynccontextmanager
+async def lifespan(app):
+    print("API is starting up. Creating database tables...")
+    create_db_and_tables()
+    print("Database tables created (if not existed).")
+    yield
+
 app = FastAPI(
     title="Scalable RAG Engine",
     description="An API for asynchronous ingestion and querying of web content.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # --- Add CORS Middleware ---
@@ -29,14 +38,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-
-# --- Database Setup ---
-
-@app.on_event("startup")
-def on_startup():
-    print("API is starting up. Creating database tables...")
-    create_db_and_tables()
-    print("Database tables created (if not existed).")
 
 def get_db():
     db = SessionLocal()
